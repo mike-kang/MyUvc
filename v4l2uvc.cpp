@@ -5,7 +5,7 @@ Thanks
 
 #include <stdlib.h>
 #include <linux/kernel.h>
-#include <linux/videodev.h>
+#include <linux/videodev2.h>
 #include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -136,7 +136,18 @@ bool v4l2uvc::init()
   setfps.parm.capture.timeperframe.denominator = m_fps;
   ret = ioctl(m_fd, VIDIOC_S_PARM, &setfps);
 
-  /*  
+ 
+  return true;
+
+}
+
+
+bool v4l2uvc::start()
+{
+  int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  int ret;
+
+ /*  
    * request buffers 
    */
    
@@ -159,7 +170,7 @@ bool v4l2uvc::init()
    * map the buffers 
    */
   struct v4l2_buffer buf;
-  for (i = 0; i < NB_BUFFER; i++) {
+  for (int i = 0; i < NB_BUFFER; i++) {
     memset(&buf, 0, sizeof(struct v4l2_buffer));
     buf.index = i;
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -171,6 +182,7 @@ bool v4l2uvc::init()
     }
     if (debug)
       printf("length: %u offset: %u\n", buf.length, buf.m.offset);
+    m_mem_length[i] = buf.length;
     m_mem[i] = mmap(0 /* start anywhere */ ,
                       buf.length, PROT_READ, MAP_SHARED, m_fd,
                       buf.m.offset);
@@ -185,7 +197,7 @@ bool v4l2uvc::init()
   /*
    * Queue the buffers. 
    */
-  for (i = 0; i < NB_BUFFER; ++i) {
+  for (int i = 0; i < NB_BUFFER; ++i) {
     memset(&buf, 0, sizeof(struct v4l2_buffer));
     buf.index = i;
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -196,15 +208,6 @@ bool v4l2uvc::init()
       return false;
     }
   }
-  return true;
-
-}
-
-
-bool v4l2uvc::start()
-{
-  int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  int ret;
 
   ret = ioctl(m_fd, VIDIOC_STREAMON, &type);
   if (ret < 0) {
@@ -240,6 +243,10 @@ bool v4l2uvc::stop()
     pthread_join(m_client, &res);
   }
     
+  for(int i = 0; i < NB_BUFFER; i++){
+    munmap(m_mem[i], m_mem_length[i]);
+  }
+
   if(m_bStreaming){
     ret = ioctl(m_fd, VIDIOC_STREAMOFF, &type);
     if (ret < 0) {
@@ -248,6 +255,7 @@ bool v4l2uvc::stop()
     }
     m_bStreaming = false;
   }
+
   return true;
 }
 

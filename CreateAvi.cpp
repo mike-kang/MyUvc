@@ -192,6 +192,7 @@ void CreateAvi::stop()
 
   m_v4l2uvc->stop();
 
+  printf("CreateAvi::stop frames:%d\n", m_frames);
   DWORD streammingTime = m_lastframetime.tv_sec - m_firstframetime.tv_sec;
   per_usec = streammingTime * 1000000 / m_frames;
 
@@ -213,7 +214,7 @@ void CreateAvi::stop()
     fwrite(&len, 4, 1, m_fp);
     offset += (len + 8);
   }
-
+  m_arrSize.clear();
   riff_sz = sizeof(struct AVI_list_hdrl) + 4 + 4 + jpg_sz
     + 8*frames + 8 + 8 + 16*frames;
 

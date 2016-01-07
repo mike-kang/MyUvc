@@ -27,6 +27,7 @@ private:
   int m_height;
   bool m_bStreaming;
   void *m_mem[NB_BUFFER];
+  int m_mem_length[NB_BUFFER];
   ICBFunc* m_cbfunc;
   pthread_t m_client;
   bool m_bRunning;
